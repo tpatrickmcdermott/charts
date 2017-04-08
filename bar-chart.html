@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bar-chart-v1</title>
+  <style>
+    body {
+      margin: 2em
+    }
+    #chart-holder {
+      position: absolute;
+      width: 600px;
+      height: 300px;
+      padding: 1em 1em 0 2em;
+      background-color: #eee;
+    }
+    .grid-vert {
+      display: inline-block;
+      height: 100%;
+      width: 0px;
+      background-color: #ddd;
+    }
+    .gridline {
+      position: absolute;
+      bottom: 20%;
+      left: 0;
+      /*padding-left: .5em;*/
+      border-bottom: 1px dotted #ddd;
+      width: 100%;
+      z-index: 10;
+      /*text*/
+      font-family:monospace;
+      font-size: 10px;
+      color: #999;
+    }
+    .col {
+      display:inline-block;
+      height: 50%;
+      bottom: 0;
+      width: 10px;
+      margin-left:1px;
+      background-color: red;
+    }
+    .rotate-test {
+      transform: rotate(-5deg);
+      transform-origin: 0 0;
+      transform-origin: left bottom;
+      border-color: black;
+    }
+  </style>
+</head>
+<body>
+  <div id="chart-holder">
+    <!-- basically a spacer-gif =( -->
+    <div class="grid-vert"></div>
+  </div>
+
+
+<script>
+  //  -------------------|   MATH stuff   |----------------------
+  function rand() {
+    var r = Math.random();
+    return Math.ceil( r*100 );
+  }
+  var makeRandArr = function(size) {
+    var a = [];
+    while (size-- > 0) {
+      a.push(rand());
+    }
+    return a;
+  };
+  var assess = function(arr) {
+    const x = arr.slice();
+    x.sort( (a,b) => a-b );
+    return {
+      min: x[0],
+      max: x[arr.length-1],
+      avg: x.reduce( (a,b)=>a+b ) / arr.length
+    }
+  };
+  //  -------------------|   DOM stuff   |----------------------
+  var create = function (ele, attribsObj) {
+    typeof ele !== 'string' ? 'ele must be a string' : null
+    var e = document.createElement(ele);
+    if (attribsObj) {
+      for (key in attribsObj) {
+        switch (key) {
+          case 'content':
+            e.textContent = attribsObj[key];
+            break;
+          case 'inner':
+            // yes innerHTML is dangerous and vulnerable to XSS attacks...
+            // but, for a dev-only function such as this, feel free to roll the dice.
+            // Please don't use this in production though =)
+            e.innerHTML = attribsObj[key];
+            break;
+          default:
+            e.setAttribute(key, attribsObj[key]);
+        }
+      }
+    }
+    return e;
+  }
+
+  //  -------------------|   MAKE stuff   |----------------------
+  //  calculate column widths
+  var calcColWidths = function(canvasWidth, cols, mpb) {
+    // mpb == sum of column margins, padding, borders
+    return canvasWidth/cols - mpb;
+  };
+  var makeColsArr = function(count) {
+    let cols = [];
+    const arr = makeRandArr(count);
+    const colW = calcColWidths(600, count, 1);  // width, mpb hardcoded; yikes!
+    while (count-- > 0) {
+      let h = 'height: '+arr[count]+'%; ';
+      let w = 'width: '+colW+'px; '
+      cols.push( create('span', {class: 'col', style: h+w} ) );
+    }
+    return cols;
+    //  TODO: 
+  };
+  //  render the chart into the DOM
+  var resetCanvas = function(canvasEleStr, bool){
+    bool ?
+        document.getElementById(canvasEleStr).innerHTML = '' :
+        null
+        ;
+  };
+  var addCols = function(canvasEleStr, count) {
+    if (typeof count != 'number' || count>300) {
+      return 'please enter an integer less than 301'
+    }
+    const cols = makeColsArr(count),
+          frag = document.createDocumentFragment(),
+          target = document.getElementById(canvasEleStr);
+    target.innerHTML = '';    // clear the canvas
+    frag.appendChild( create('span', {class: 'grid-vert'}) );
+    while (count-- > 0) {
+      frag.appendChild(cols[count]);
+    }
+    target.appendChild(frag);
+    CHART_DATA = cols;
+    return CHART_DATA;
+  };
+  var addGridlines = function(canvasEleStr, count) {
+    let space = 100/count;
+    const frag = document.createDocumentFragment(),
+          target = document.getElementById(canvasEleStr);
+    var iter = count;
+    while (iter-- > 1) {
+      let ln = 'bottom: '+space*iter+'%; ';
+      let txt = ' '+space*iter+'%';
+      frag.appendChild(
+        create('div', {class: 'gridline', style: ln, content: txt})
+      );
+    }
+    target.appendChild(frag);
+    //  TODO: cleanup floatpoint numbers
+  };
+  //  -------------------|   Get some Stats   |----------------------
+  var getChartStats = function() {
+    const data = CHART_DATA;
+    const heights = data.map((e)=>e.style.height).reverse();
+    const width = data[0].style.width;
+    //  NOTE: We're unreversing the reverse way frag is populated in addCols
+    //  WE could clean that logic up if so inclined!
+    return {heights: heights, width: width};
+  };
+</script>
+
+<!-- ========================  Comments ====================
+1.  Doesn't take much math to realize the max# of cols is 300
+     (assuming mpb=1px, and canvas size=600px). More than that and you have column widths less than 1 px
+2.  A fun side effect involves looking at adding +300.
+    By the time you get to 600 cols, the calc'd width is 0px.
+    Again, obvious enough.  The fun part is 601+. The browser sees a negative
+    pixel dimension, says the hell with that and uses the default css of 10px
+
+end -->
+</body>
+</html>
