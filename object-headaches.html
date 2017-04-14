@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Ways to give yourself a headache</title>
+  <style media="screen">
+    body {
+      margin: 2em
+    }
+    #cont {
+      /*background-color: #ddd;*/
+      width: 70em;
+      line-height: 1.6em;
+      max-height: 600px;
+      overflow: scroll;
+    }
+    /*prettyprint overrides*/
+    pre.prettyprint {
+      border-color: #ddd !important;
+    }
+    li.L0, li.L1, li.L2, li.L3, li.L5, li.L6, li.L7, li.L8 {
+      list-style-type: decimal !important;
+    }
+  </style>
+
+    <script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+    <link rel="stylesheet" type=text/css href="desert.css">
+</head>
+
+<body>
+  <h1>Objects: Fun with __proto__</h1>
+  <h2>...and less fun with <code>new</code></h2>
+
+
+  <pre class="prettyprint lang-js linenums skin-desert" id="cont">
+  </pre>
+
+  <script>    // ------|  MAIN SCRIPT  |---------
+    function Dog() {return {hobbies: 'barking, pooping'}}
+    let fufu = new Dog();  // --> Object {hobbies: "barking, pooping"}
+
+    let cat = {hobbies: 'purring'};
+    Object.setPrototypeOf(fufu, cat);
+    // fufu --> Object {hobbies: "barking, pooping"}
+    // fufu.__proto__.hobbies --> 'purring'
+    // cat.isPrototypeOf(fufu) --> true
+    cat.jobs = '[sleeping, eating]';
+    let lulu = {name: 'lulu'};
+    Object.setPrototypeOf(lulu, fufu);
+
+    fufu.__proto__.peeves = 'not getting fed quickly enough';
+    // cat.peeves --> 'not getting fed quickly enough'
+    function testprops(obj, searchForProp) {
+      for (prop in obj) {
+        if (prop == searchForProp) {
+          return true
+        }
+      }
+    }
+    function getprops(obj) {
+      let arr = [];
+      for (prop in obj) {
+        arr.push(prop);
+        arr.push(obj.hasOwnProperty(prop));
+      }
+      return arr;
+    }
+    /*
+    getprops(cat)
+        ["hobbies", true, "jobs", true, "peeves", true]
+    getprops(fufu)
+        ["hobbies", true, "jobs", false, "peeves", false]
+    getprops(lulu)
+        ["name", true, "hobbies", false, "jobs", false, "peeves", false]
+    */
+  </script>
+
+  <script id="myscript">  // ------|  SCRIPT  |---------
+    function foo(){
+      var someVar;
+    }
+    const $id = (e) => document.getElementById(e);
+    const $c = (e) => document.getElementsByClassName(e);
+    const $t = (e) => document.getElementsByTagName(e);
+    d = $id('cont'); s = $id('myscript');
+    mainScript = $t('script')[0];
+    d.innerText = mainScript.innerText;
+  </script>
+</body>
+</html>
