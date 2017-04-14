@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Bar-chart-v3</title>
+  <style name="chart-styles">
+    body {
+      margin: 2em
+    }
+    #chart-holder {
+      position: absolute;
+      width: 600px;
+      height: 300px;
+      padding: 1em 1em 0 2em;
+      background-color: #eee;
+    }
+    .chart-wrapper {
+      position: relative;
+      height: 316px;
+      margin-bottom: 1em;
+      /*background-color: #ddd;*/
+    }
+    .clearfix:before {
+      content: "";
+      display: table;
+      clear: both;
+    }
+    .grid-vert {
+      /*  We don't need this anymore, since we're wrapping the columns
+      in their own container. (should've done that from the start!)
+      */
+      display: inline-block;
+      height: 100%;
+      width: 0px;
+      background-color: #ddd;
+    }
+    .gridline {
+      position: absolute;
+      bottom: 20%;
+      left: 0;
+      /*padding-left: .5em;*/
+      border-bottom: 1px dotted #eee;
+      width: 100%;
+      z-index: 10;
+      /*text*/
+      font-family:monospace;
+      font-size: 10px;
+      color: #999;
+    }
+    .col-holder {
+      position: inherit;
+      height:inherit;
+    }
+    .col {
+      display: inline-block;
+      bottom: 0;
+      margin-left: 1px;
+      background-color: red;
+      /*defaults: overridden dynamically*/
+      height: 50%;
+      width: 10px;
+    }
+    .col-ani {
+      /*animate*/
+      transition: 1s;
+      top: 0;
+    }
+    .rotate-test {
+      transform: rotate(-5deg);
+      transform-origin: 0 0;
+      transform-origin: left bottom;
+      border-color: black;
+    }
+  </style>
+</head>
+<body>
+  <div class="chart-wrapper">
+    <div id="chart-holder">
+      <!-- basically a spacer-gif =( -->
+      <div class="grid-vert"></div>
+    </div>
+  </div>
+
+  <form>
+    <fieldset>
+      <legend>Chart Display Options</legend>
+      <p>
+        <input type="checkbox" name="size" id="frm_gridlines" checked="checked">
+        <label for="frm_gridlines">Show Gridlines</label>
+      </p>
+      <p>
+        <input type="checkbox" name="size" id="frm_colVals" value="medium">
+        <label for="frm_colVals">Show column values</label>
+      </p>
+    </fieldset>
+  </form>
+
+<script>
+  //  -------------------|   MATH stuff   |----------------------
+  function rand() {
+    var r = Math.random();
+    return Math.ceil( r*100 );
+  }
+  var makeRandArr = function(size) {
+    var a = [];
+    while (size-- > 0) {
+      a.push(rand());
+    }
+    return a;
+  };
+  //  NOTE: assess() is not really part of this project; can dispose if desired
+  //  -- OR --
+  //  use this func to calculate the further stats (variance, stdev, etc)
+  //  (would need to name this more clearly to describe utilization)
+  var assess = function(arr) {
+    const x = arr.slice();
+    x.sort( (a,b) => a-b );
+    return {
+      min: x[0],
+      max: x[arr.length-1],
+      avg: x.reduce( (a,b)=>a+b ) / arr.length
+    }
+  };
+  //  -------------------|   DOM stuff   |----------------------
+  var create = function (ele, attribsObj) {
+    typeof ele !== 'string' ? 'ele must be a string' : null
+    var e = document.createElement(ele);
+    if (attribsObj) {
+      for (key in attribsObj) {
+        switch (key) {
+          case 'content':
+            e.textContent = attribsObj[key];
+            break;
+          case 'inner':
+            // yes innerHTML is a bit dangerous and vulnerable to XSS attacks...
+            // so think about where you're using/exposing it to public inputs
+            e.innerHTML = attribsObj[key];
+            break;
+          default:
+            e.setAttribute(key, attribsObj[key]);
+        }
+      }
+    }
+    return e;
+  }
+
+  //  -------------------|   MAKE stuff   |----------------------
+  //  calculate column widths
+  var calcColWidths = function(canvasWidth, cols, mpb) {
+    // mpb == sum of column margins, padding, borders
+    return canvasWidth/cols - mpb;
+  };
+  var makeColsArr = function(count) {
+    let cols = [];
+    const arr = makeRandArr(count);
+    const colW = calcColWidths(600, count, 1);  // width, mpb hardcoded; yikes!
+    while (count-- > 0) {
+      let val = arr[count];
+      let h = 'height: '+arr[count]+'%; ';
+      let w = 'width: '+colW+'px; '
+      cols.push( create('span', {class: 'col', style: h+w, title: val+'%'} ) );
+    }
+    return cols;
+    //  TODO:
+  };
+  //  render the chart into the DOM
+  var resetCanvas = function(canvasEleStr, bool){
+    bool ?
+        document.getElementById(canvasEleStr).innerHTML = '' :
+        null
+        ;
+  };
+  var addCols = function(canvasEleStr, count) {
+    if (typeof count != 'number' || count>300) {
+      return 'please enter an integer less than 301'
+    }
+    const cols = makeColsArr(count),
+          frag = document.createDocumentFragment(),
+          target = document.getElementById(canvasEleStr);
+    target.innerHTML = '';    // clear the canvas
+    while (count-- > 0) {
+      frag.appendChild(cols[count]);
+    }
+    const colHolder = create('div', {class: 'col-holder'});
+    colHolder.appendChild(frag);
+    target.appendChild(colHolder);
+    //  TODO: move these dev globals into a single object.
+    //  ...and then, re-factor and get rid of that object!! Hah!
+    CHART_DATA = cols;
+    return CHART_DATA;
+  };
+
+  var addGridlines = function(canvasEleStr, count) {
+    let space = 100/count;
+    const frag = document.createDocumentFragment(),
+          target = document.getElementById(canvasEleStr);
+    var iter = count;
+    while (iter-- > 1) {
+      let ln = 'bottom: '+space*iter+'%; ';
+      let txt = ' '+space*iter+'%';
+      frag.appendChild(
+        create('div', {class: 'gridline', style: ln, content: txt})
+      );
+    }
+    // let myfrag = create('div', {class: 'mygridlines'});
+    MY_FRAG = create('div', {class: 'mygridlines'});
+    MY_FRAG.appendChild(frag);
+    // target.appendChild(frag);
+    target.appendChild(MY_FRAG);
+    //  TODO: cleanup floatpoint numbers
+  };
+
+  //  -------------------|     LISTENERS     |----------------------
+  var surveille = function() {
+    // NOTE: OK, by now, I'm tired of document.get... so,
+    const $id = (e) => document.getElementById(e);
+    const $c = (e) => document.getElementsByClassName(e);
+    let gridHook = $id(frm_gridlines);
+  }
+
+  //  -------------------|   Get some Stats   |----------------------
+  var getChartStats = function() {
+    const data = CHART_DATA;
+    const heights = data.map((e)=>e.style.height).reverse();
+    const width = data[0].style.width;
+    //  NOTE: We're unreversing the reverse way frag is populated in addCols
+    //  WE could clean that logic up if so inclined!
+    return {heights: heights, width: width};
+  };
+  function repeat(count, fn) { while (count-- > 0) {return fn} }
+  //  makeRandArr(100).filter((e)=> e>50).length
+
+  //  -------------------|       INIT     |----------------------
+  addCols('chart-holder',10); addGridlines('chart-holder', 5)
+
+  //  -------------------|       UTILITY Funcs     |----------------------
+  function repeat(count, fn) {
+    while (count-- > 0) {return fn}
+  }
+  //  makeRandArr(100).filter((e)=> e>50).length
+</script>
+
+<!-- ========================  Comments ====================
+1.  Doesn't take much math to realize the max# of cols is 300
+     (assuming mpb=1px, and canvas size=600px). More than that and you have column widths less than 1 px
+2.  A fun side effect involves looking at adding +300.
+    By the time you get to 600 cols, the calc'd width is 0px. Again, obvious enough.
+    The fun part is 601+. The browser sees a negative
+    pixel dimension, says the hell with that and uses the default css of 10px
+
+end -->
+</body>
+</html>
