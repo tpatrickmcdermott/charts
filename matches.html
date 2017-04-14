@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Selectors: match()</title>
+  </head>
+  <body>
+    <h1>DOM selector methods</h1>
+    <h2>Element.matches()</h2>
+    <!-- <div id=​"mydiv" data=​"some data">​my div ​</div>​ -->
+    <code>&lt;div id=&NegativeMediumSpace;&quot;mydiv&quot; data=&NegativeMediumSpace;&quot;some data&quot;&gt;&NegativeMediumSpace;my div &NegativeMediumSpace;&lt;/div&gt;&NegativeMediumSpace;</code>
+
+
+
+
+    <script type="text/javascript">
+      //make some element
+      document.body.innerHTML =
+        "<div id='mydiv' data='some data'>my div </div>"
+      //  --> d = document.getElementById('mydiv')
+      <div id=​"mydiv" data=​"some data">​my div ​</div>​
+      d.matches('div') // true
+      d.matches('div[data]') // true
+      d.matches('div[data="some data"]') // true
+      d.matches('div[data="some data2"]') // false
+      let mytxt = document.getElementById("mytxt");
+    </script>
+
+    <script type="text/javascript">
+      function encodeBrakets(str){
+        const s = str
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          ;
+        return s;
+      }
+    </script>
+
+
+  </body>
+</html>
